@@ -1,14 +1,15 @@
 '''
-Example 23: This is almost identical to Simulation 22 but genomic 
-interpretation using user-defined interpreter.
+This example is to list aWorld and Population objects after initialization.
 
 In this simulation,
-    - 1 population of 1 organisms
-    - each organism will have 1 chromosome of only 4 bases (A, T, G, C)
+    - 1 population of 10 organisms
+    - each organism will have 1 chromosome of only 10 bases (1 to 0)
     - entire population will be deployed in one eco-cell (0, 0, 0)
-    - 10% background point mutation on chromosome of 30 bases
+    - the local_input of all all ecological cells is set to [1, 2, 3, 4]
+    - 5% background point mutation on chromosome of 30 bases
     - no organism movement throughout the simulation
-    - user-defined interpretation of genome (without new blood option)
+    - CodonA interpretation of genome on all instructions (with 
+    new blood option)
     - 100 generations to be simulated
 '''
 # needed to run this example without prior
@@ -18,62 +19,45 @@ try:
 except ImportError: pass
 
 # Example codes starts from here
+import random
 import dose
 
-# User-defined interpreter: interpreter_alpha
-def move(array, apointer, inputdata, output, source, spointer):
-    cmd = source[spointer]
-    if cmd == 'A': apointer = apointer + 1
-    if cmd == 'T': apointer = apointer - 1
-    return (array, apointer, inputdata, output, source, spointer)
-
-def add(array, apointer, inputdata, output, source, spointer):
-    cmd = source[spointer]
-    if cmd == 'G': array[apointer] = array[apointer] + 1
-    if cmd == 'C': array[apointer] = array[apointer] - 1
-    return (array, apointer, inputdata, output, source, spointer)
-
-interpreter_alpha = {'A': move,
-                     'T': move,
-                     'G': add,
-                     'C': add}
-# End of user-defined interpreter
 
 parameters = {# Part 1: Simulation metadata
-              "simulation_name": "23_simulation_22_with_interpretation",
-              "population_names": ['pop_01'],
+              "simulation_name": "object listing",
+              "population_names": ['pop_01', "pop_02"],
 
               # Part 2: World settings
-              "world_x": 5,
-              "world_y": 5,
-              "world_z": 5,
+              "world_x": 2,
+              "world_y": 2,
+              "world_z": 1,
               "population_locations": [[(0,0,0)]],
               "eco_cell_capacity": 100,
               "deployment_code": 1,
 
               # Part 3: Population settings
-              "population_size": 1,
+              "population_size": 10,
 
               # Part 4: Genetics settings
               "genome_size": 1,
-              "chromosome_size": 300,
+              "chromosome_size": 100,
               "chromosome_bases": ['A', 'T', 'G', 'C'],
-              "initial_chromosome": ['A', 'T', 'G', 'C'] * 75,
+              "initial_chromosome": ['A', 'T', 'G', 'C'] * 25,
 
               # Part 5: Mutation settings
-              "background_mutation": 0.1,
+              "background_mutation": 0.05,
               "additional_mutation": 0,
               "mutation_type": 'point',
               
               # Part 6: Metabolic settings
-              "interpreter": interpreter_alpha,
-              "instruction_size": 1,
+              "interpreter": dose.codonA.interpreter,
+              "instruction_size": 3,
               "ragaraja_version": "user-defined",
               "base_converter": None,
               "ragaraja_instructions": [],
-              "max_tape_length": 15,
+              "max_tape_length": 4,
               "interpret_chromosome": True,
-              "clean_cell": False,
+              "clean_cell": True,
               "max_codon": 2000,
 
               # Part 7: Simulation settings
@@ -122,7 +106,7 @@ class simulation_functions(dose.dose_functions):
         identities = [org.status['identity'] for org in Populations[pop_name].agents]
         locations = [str(org.status['location']) for org in Populations[pop_name].agents]
         demes = [org.status['deme'] for org in Populations[pop_name].agents]
-        print(sequences)
+        #print(sequences)
         print([org.status['blood'] for org in Populations[pop_name].agents])
         return '\n'.join(sequences)
 
@@ -139,4 +123,45 @@ class simulation_functions(dose.dose_functions):
 
     def deployment_scheme(self, Populations, pop_name, World): pass
 
-dose.simulate(parameters, simulation_functions)
+from pprint import pprint
+
+print('\n[' + parameters["simulation_name"].upper() + ' SIMULATION]')
+print('Adding deployment scheme to simulation parameters...')
+parameters["deployment_scheme"] = simulation_functions.deployment_scheme
+
+print('Constructing World entity...')
+World = dose.dose_world.World(parameters["world_x"],
+                         parameters["world_y"],
+                         parameters["world_z"])
+World = dose.load_all_local_input(World, [1, 2])
+print("World: " + str(World))
+print("World.ecosystem:")
+pprint(World.ecosystem)
+print("")
+Populations = dose.spawn_populations(parameters)
+print("Populations: " + str(Populations))
+print("")
+print("Organisms in pop_01 (Populations['pop_01'].agents):")
+pprint(Populations['pop_01'].agents)
+print("")
+print("Organisms in pop_02 (Populations['pop_02'].agents):")
+pprint(Populations['pop_02'].agents)
+print("")
+print("Genome of Organism 1 in pop_01 (Populations['pop_01'].agents[0].genome):")
+pprint(Populations['pop_01'].agents[0].genome)
+print("")
+print("Sequence of Chromosome 1 of Organism 1 in pop_01 (Populations['pop_01'].agents[0].genome[0].sequence):") 
+print(Populations['pop_01'].agents[0].genome[0].sequence)
+print("")
+print("Bases of Chromosome 1 of Organism 1 in pop_01 (Populations['pop_01'].agents[0].genome[0].base):")
+print(Populations['pop_01'].agents[0].genome[0].base)
+print("")
+print("Background mutation rate of Chromosome 1 of Organism 1 in pop_01 (Populations['pop_01'].agents[0].genome[0].background_mutation): " + str(Populations['pop_01'].agents[0].genome[0].background_mutation))
+
+"""
+print('\nStarting simulation on sequential ecological cell simulator...')
+(simulation_functions, parameters, Populations, World) = \
+    dose.sequential_simulator(simulation_functions, parameters, 
+                              Populations, World)
+print('\nSimulation ended...')
+"""
